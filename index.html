@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MetaTrader 5 — Trading Terminal UI</title>
+  <style>
+    :root {
+      --bg: #f4f5f6;
+      --bar: #2b2f33;
+      --bar2: #363b40;
+      --panel: #fff;
+      --line: #d7dadd;
+      --text: #202428;
+      --muted: #737b82;
+      --blue: #1976d2;
+      --green: #148a58;
+      --red: #d33c3c;
+      --yellow: #e4a500;
+      --chart: #fff;
+      --grid: #e9ecef;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font: 12px Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+    button, input, select {
+      font: inherit;
+    }
+    .terminal {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ---------- MENU ---------- */
+    .menu {
+      height: 30px;
+      background: var(--bar);
+      color: #dfe3e6;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 15px;
+      font-size: 12px;
+    }
+    .menu span {
+      cursor: pointer;
+    }
+    .menu .brand {
+      font-weight: bold;
+      color: #fff;
+      margin-right: 4px;
+    }
+    .menu .spacer {
+      flex: 1;
+    }
+    .account {
+      color: #bde7d2;
+    }
+    .dotlive {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #24c77b;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    /* ---------- TOOLBAR ---------- */
+    .toolbar {
+      height: 39px;
+      background: #f0f1f2;
+      border-bottom: 1px solid #c7cbd0;
+      display: flex;
+      align-items: center;
+      padding: 3px 6px;
+      gap: 2px;
+    }
+    .tool {
+      height: 30px;
+      min-width: 29px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #30353a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 7px;
+      cursor: pointer;
+    }
+    .tool:hover, .tool.active {
+      background: #dce8f4;
+      border-color: #b6cce1;
+    }
+    .tool.sep {
+      width: 1px;
+      min-width: 1px;
+      padding: 0;
+      background: #cfd3d6;
+      margin: 0 4px;
+    }
+    .icons {
+      font-size: 16px;
+    }
+    .period {
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    /* ---------- WORKSPACE ---------- */
+    .workspace {
+      display: grid;
+      grid-template-columns: 245px 1fr;
+      grid-template-rows: minmax(0, 1fr) 205px;
+      flex: 1;
+      min-height: 0;
+    }
+    .left {
+      grid-row: 1 / 3;
+      background: #fff;
+      border-right: 1px solid var(--line);
+      min-width: 0;
+    }
+    .box-title {
+      height: 29px;
+      background: #eef0f2;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 9px;
+      font-weight: bold;
+      color: #3e454b;
+    }
+    .box-title .right {
+      margin-left: auto;
+      color: #747b81;
+    }
+    .watch-head, .watch-row {
+      display: grid;
+      grid-template-columns: 1fr 72px 62px;
+      gap: 4px;
+      padding: 0 9px;
+      align-items: center;
+    }
+    .watch-head {
+      height: 23px;
+      color: #737a80;
+      border-bottom: 1px solid #e3e5e7;
+      font-size: 10px;
+    }
+    .watch-row {
+      height: 28px;
+      border-bottom: 1px solid #f0f1f2;
+      cursor: pointer;
+    }
+    .watch-row:hover, .watch-row.selected {
+      background: #e8f1fa;
+    }
+    .sym {
+      font-weight: bold;
+    }
+    .bid {
+      font-variant-numeric: tabular-nums;
+    }
+    .up {
+      color: var(--green);
+    }
+    .down {
+      color: var(--red);
+    }
+    .tree {
+      padding: 7px 9px;
+      color: #4d555c;
+    }
+    .tree div {
+      padding: 4px 0;
+    }
+    .tree .folder {
+      font-weight: bold;
+    }
+    .tree .indent {
+      padding-left: 18px;
+    }
+
+    /* ---------- CENTER / CHART ---------- */
+    .center {
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+    }
+    .chart-tabs {
+      height: 28px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: stretch;
+      background: #eef0f2;
+    }
+    .ctab {
+      padding: 7px 13px;
+      border-right: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .ctab.active {
+      background: #fff;
+      font-weight: bold;
+      color: #1468ae;
+    }
+    .chartbar {
+      height: 30px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 7px;
+      gap: 4px;
+    }
+    .pairname {
+      font-weight: bold;
+      margin: 0 9px 0 4px;
+    }
+    .chartarea {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      background: var(--chart);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+    }
+    .plot {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .pricebox {
+      position: absolute;
+      right: 4px;
+      top: 14px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #cdd1d5;
+      padding: 4px 7px;
+      font-size: 11px;
+    }
+    .crosshair {
+      position: absolute;
+      left: 58%;
+      top: 42%;
+      height: 100%;
+      width: 1px;
+      background: #9da5ac55;
+      pointer-events: none;
+    }
+    .crosshair:after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 9999px;
+      height: 1px;
+      background: #9da5ac55;
+    }
+    .chart-label {
+      position: absolute;
+      left: 12px;
+      top: 8px;
+      background: #ffffffcc;
+      border: 1px solid #ddd;
+      padding: 3px 5px;
+      color: #444;
+    }
+
+    /* ---------- BOTTOM ---------- */
+    .bottom {
+      grid-column: 2;
+      background: #fff;
+      border-top: 1px solid #bfc4c8;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .tabs {
+      height: 31px;
+      background: #eef0f2;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: stretch;
+    }
+    .tab {
+      padding: 8px 13px;
+      color: #626a70;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: #fff;
+      color: #1a1e22;
+      border-top: 2px solid var(--blue);
+      padding-top: 6px;
+      font-weight: bold;
+    }
+    .tradebar {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      border-bottom: 1px solid #e1e3e5;
+      gap: 14px;
+    }
+    .equity {
+      margin-left: auto;
+    }
+    .trade-table {
+      overflow: auto;
+      flex: 1;
+    }
+    .tr {
+      display: grid;
+      grid-template-columns: 120px 72px 72px 105px 105px 105px 105px 105px;
+      min-width: 790px;
+      align-items: center;
+      height: 27px;
+      border-bottom: 1px solid #f0f1f2;
+      padding: 0 7px;
+    }
+    .tr.head {
+      height: 24px;
+      background: #fafafa;
+      color: #727980;
+      font-size: 10px;
+    }
+    .order-close {
+      border: 0;
+      background: transparent;
+      color: #2772ae;
+      cursor: pointer;
+    }
+    .status {
+      color: #168052;
+      font-weight: bold;
+    }
+
+    /* ---------- ORDER PANEL (right side of chart) ---------- */
+    .rightbar {
+      position: absolute;
+      right: 7px;
+      top: 7px;
+      display: flex;
+      gap: 4px;
+      z-index: 3;
+    }
+    .quote {
+      padding: 4px 6px;
+      border: 1px solid #cfd3d6;
+      background: #fff;
+      font-size: 10px;
+    }
+    .orderpanel {
+      position: relative;
+      width: auto;
+      background: #fff;
+      border-left: 1px solid #bfc4c8;
+      box-shadow: -2px 0 8px #0000000d;
+      z-index: 4;
+    }
+    .live-account {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 9px;
+      background: #eaf7f0;
+      border-bottom: 1px solid #c9e7d7;
+      color: #11633f;
+      font-weight: bold;
+    }
+    .live-account .badge {
+      background: #168b5a;
+      color: #fff;
+      border-radius: 10px;
+      padding: 2px 7px;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+    }
+    .deposit-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 9px;
+      background: #fff;
+      border-bottom: 1px solid #e1e3e5;
+    }
+    .deposit-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #e8f6ef;
+      color: #168b5a;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+    }
+    .deposit-info {
+      line-height: 1.25;
+    }
+    .deposit-info small {
+      display: block;
+      color: #737b82;
+      font-size: 9px;
+    }
+    .deposit-info b {
+      font-size: 14px;
+    }
+    .deposit-btn {
+      margin-left: auto;
+      border: 1px solid #168b5a;
+      background: #168b5a;
+      color: #fff;
+      border-radius: 3px;
+      padding: 5px 7px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .op-head {
+      height: 28px;
+      background: #eef0f2;
+      border-bottom: 1px solid var(--line);
+      padding: 7px 9px;
+      font-weight: bold;
+    }
+    .op-body {
+      padding: 8px;
+    }
+    .field {
+      margin-bottom: 7px;
+    }
+    .field label {
+      display: block;
+      color: #737b82;
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+    .field input, .field select {
+      width: 100%;
+      height: 27px;
+      border: 1px solid #c6cbd0;
+      padding: 4px 6px;
+      background: #fff;
+    }
+    .twocol {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .trade-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .trade-buttons button {
+      height: 31px;
+      border: 0;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .sell {
+      background: #c83d3d;
+    }
+    .buy {
+      background: #168b5a;
+    }
+    .trade-buttons button:hover {
+      filter: brightness(0.95);
+    }
+
+    /* ---------- FOOTER ---------- */
+    .footer {
+      height: 21px;
+      background: #2b2f33;
+      color: #cbd0d4;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 10px;
+    }
+    .footer .live {
+      color: #63dfaa;
+    }
+    .footer .right {
+      margin-left: auto;
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 900px) {
+      .workspace {
+        grid-template-columns: 190px 1fr;
+      }
+      .orderpanel {
+        width: auto;
+      }
+      .tr {
+        grid-template-columns: 105px 62px 62px 90px 90px 90px 90px 90px;
+      }
+      .menu span:nth-child(n+6) {
+        display: none;
+      }
+    }
+    @media (max-width: 680px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) 170px;
+      }
+      .chartarea {
+        grid-template-columns: 1fr;
+      }
+      .orderpanel {
+        position: absolute;
+        right: 7px;
+        bottom: 7px;
+        width: 185px;
+        border: 1px solid #bfc4c8;
+        box-shadow: 0 2px 8px #0002;
+      }
+      .left {
+        display: none;
+      }
+      .bottom {
+        grid-column: 1;
+      }
+      .orderpanel {
+        width: 180px;
+      }
+      .menu {
+        gap: 8px;
+      }
+      .menu span:nth-child(n+4) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal">
+    <!-- Menu -->
+    <div class="menu">
+      <span class="brand">MetaTrader 5</span>
+      <span>File</span><span>View</span><span>Insert</span><span>Charts</span><span>Tools</span><span>Window</span><span>Help</span>
+      <span class="spacer"></span>
+      <span class="account"><i class="dotlive"></i>LIVE</span>
+      <span>Editor Muthoni • #8417265</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="tool active">☰</button>
+      <button class="tool">▣</button>
+      <button class="tool">↶</button>
+      <button class="tool">↷</button>
+      <div class="tool sep"></div>
+      <button class="tool">＋</button>
+      <button class="tool">⌖</button>
+      <button class="tool">✚</button>
+      <div class="tool sep"></div>
+      <button class="tool period active">M1</button>
+      <button class="tool period">M5</button>
+      <button class="tool period">M15</button>
+      <button class="tool period">M30</button>
+      <button class="tool period">H1</button>
+      <button class="tool period">H4</button>
+      <button class="tool period">D1</button>
+      <div class="tool sep"></div>
+      <button class="tool">▥</button>
+      <button class="tool">⌁</button>
+      <button class="tool">ƒx</button>
+      <button class="tool">▤</button>
+      <span style="margin-left:auto;color:#697178">AutoTrading</span>
+      <button class="tool active" id="auto">▶</button>
+    </div>
+
+    <!-- Main workspace -->
+    <div class="workspace">
+      <!-- Left sidebar -->
+      <aside class="left">
+        <div class="box-title">Market Watch <span class="right">⌄</span></div>
+        <div class="watch-head"><span>Symbol</span><span>Bid</span><span>Ask</span></div>
+        <div id="watchlist">
+          <div class="watch-row selected" data-symbol="EURUSD"><span class="sym">EURUSD</span><span class="bid">1.17282</span><span class="bid">1.17286</span></div>
+          <div class="watch-row" data-symbol="GBPUSD"><span class="sym">GBPUSD</span><span>1.35202</span><span>1.35208</span></div>
+          <div class="watch-row" data-symbol="USDJPY"><span class="sym">USDJPY</span><span>148.720</span><span>148.728</span></div>
+          <div class="watch-row" data-symbol="USDCHF"><span class="sym">USDCHF</span><span>0.79342</span><span>0.79350</span></div>
+          <div class="watch-row" data-symbol="AUDUSD"><span class="sym">AUDUSD</span><span>0.66182</span><span>0.66188</span></div>
+          <div class="watch-row" data-symbol="USDCAD"><span class="sym">USDCAD</span><span>1.38142</span><span>1.38150</span></div>
+          <div class="watch-row" data-symbol="XAUUSD"><span class="sym">XAUUSD</span><span>3846.20</span><span>3846.80</span></div>
+        </div>
+        <div class="box-title" style="margin-top:8px">Navigator <span class="right">⌃</span></div>
+        <div class="tree">
+          <div class="folder">▾ Accounts</div>
+          <div class="indent">▸ MetaQuotes-Demo</div>
+          <div class="indent" style="font-weight:bold">▾ 8417265 — Live</div>
+          <div class="folder">▾ Indicators</div>
+          <div class="indent">▸ Trend</div>
+          <div class="indent">▸ Oscillators</div>
+          <div class="folder">▾ Expert Advisors</div>
+        </div>
+      </aside>
+
+      <!-- Center / Chart -->
+      <main class="center">
+        <div class="chart-tabs">
+          <div class="ctab active">EURUSD,M1</div>
+          <div class="ctab">GBPUSD,M1</div>
+          <div class="ctab">XAUUSD,M1</div>
+          <div class="ctab">＋</div>
+        </div>
+        <div class="chartbar">
+          <span class="pairname" id="pair">EURUSD</span>
+          <button class="tool">Bar</button>
+          <button class="tool active">Candles</button>
+          <button class="tool">Line</button>
+          <div class="tool sep"></div>
+          <button class="tool period active">M1</button>
+          <button class="tool period">M5</button>
+          <button class="tool period">M15</button>
+          <button class="tool period">H1</button>
+          <button class="tool period">H4</button>
+          <button class="tool period">D1</button>
+          <div class="tool sep"></div>
+          <button class="tool">Indicators</button>
+          <span style="margin-left:auto;color:#737b82">Spread: <b id="spread">0.4</b> pips</span>
+        </div>
+        <div class="chartarea">
+          <div class="plot">
+            <canvas id="chart"></canvas>
+            <div class="chart-label"><b id="chartSymbol">EURUSD</b> · M1 · Bid 1.17282</div>
+            <div class="crosshair"></div>
+            <div class="pricebox" id="pricebox">1.17282</div>
+            <div class="rightbar">
+              <span class="quote">SELL <b id="sellq">1.17282</b></span>
+              <span class="quote">BUY <b id="buyq">1.17286</b></span>
+            </div>
+          </div>
+          <!-- Order panel -->
+          <div class="orderpanel">
+            <div class="live-account"><span class="badge">REAL</span><span>Live trading account</span></div>
+            <div class="deposit-box">
+              <div class="deposit-icon">⇩</div>
+              <div class="deposit-info">
+                <small>TRADING BALANCE</small>
+                <b id="topBalance">$24,680.40</b>
+              </div>
+              <button class="deposit-btn" id="depositBtn">Deposit</button>
+            </div>
+            <div class="op-head">New Order — <span id="orderSymbol">EURUSD</span></div>
+            <div class="op-body">
+              <div class="field">
+                <label>Volume</label>
+                <input id="volume" value="0.10" type="number" step="0.01">
+              </div>
+              <div class="twocol">
+                <div class="field"><label>Stop Loss</label><input placeholder="0.00000"></div>
+                <div class="field"><label>Take Profit</label><input placeholder="0.00000"></div>
+              </div>
+              <div class="field">
+                <label>Type</label>
+                <select><option>Market Execution</option><option>Pending Order</option></select>
+              </div>
+              <div class="trade-buttons">
+                <button class="sell" id="sell">Sell</button>
+                <button class="buy" id="buy">Buy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bottom panel -->
+      <section class="bottom">
+        <div class="tabs">
+          <div class="tab active">Trade</div>
+          <div class="tab">Exposure</div>
+          <div class="tab">History</div>
+          <div class="tab">News</div>
+          <div class="tab">Mailbox</div>
+          <div class="tab">Calendar</div>
+          <div class="tab">Alerts</div>
+          <div class="tab">Experts</div>
+          <div class="tab">Journal</div>
+        </div>
+        <div class="tradebar">
+          <b>Balance: $24,680.40</b>
+          <span>Equity: <b id="equity">$24,716.10</b></span>
+          <span>Margin: $234.56</span>
+          <span>Free Margin: $24,481.54</span>
+          <span>Margin Level: 10534.2%</span>
+          <span class="equity">Account: <b>8417265</b> · <span class="status">Connected</span></span>
+        </div>
+        <div class="trade-table" id="positions">
+          <div class="tr head">
+            <span>Symbol</span><span>Type</span><span>Volume</span><span>Price</span><span>S/L</span><span>T/P</span><span>Profit</span><span>Action</span>
+          </div>
+          <div class="tr">
+            <span><b>EURUSD</b></span><span class="up">buy</span><span>0.20</span><span>1.17042</span><span>—</span><span>—</span><span class="up">+$48.40</span><span><button class="order-close">Close</button></span>
+          </div>
+          <div class="tr">
+            <span><b>GBPUSD</b></span><span class="down">sell</span><span>0.10</span><span>1.35218</span><span>—</span><span>—</span><span class="down">-$12.70</span><span><button class="order-close">Close</button></span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span class="live"><i class="dotlive"></i>Trade server connected</span>
+      <span style="margin-left:15px">Ping: 42 ms</span>
+      <span class="right">EURUSD · Real-time connection UI · All prices shown are illustrative</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+      let current = 'EURUSD';
+      let price = 1.17282;
+
+      const quotes = {
+        EURUSD: [1.17282, 1.17286],
+        GBPUSD: [1.35202, 1.35208],
+        USDJPY: [148.720, 148.728],
+        USDCHF: [0.79342, 0.79350],
+        AUDUSD: [0.66182, 0.66188],
+        USDCAD: [1.38142, 1.38150],
+        XAUUSD: [3846.20, 3846.80]
+      };
+
+      // ---------- CHART RENDERING (no animation, just static candles) ----------
+      function fitCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = canvas.clientWidth * dpr;
+        canvas.height = canvas.clientHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawChart();
+      }
+
+      function drawChart() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w === 0 || h === 0) return;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+
+        // grid
+        ctx.strokeStyle = '#e7eaed';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 12; i++) {
+          let y = 20 + i * (h - 45) / 11;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        for (let i = 0; i < 15; i++) {
+          let xx = i * w / 14;
+          ctx.beginPath();
+          ctx.moveTo(xx, 0);
+          ctx.lineTo(xx, h);
+          ctx.stroke();
+        }
+
+        // generate deterministic-ish price data with a base
+        const n = Math.max(45, Math.floor(w / 12));
+        let v = 1.1725;
+        const vals = [];
+        for (let i = 0; i < n; i++) {
+          // stable, slightly random but deterministic seed per i
+          const r = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+          const rand = (r - Math.floor(r)) - 0.5; // -0.5..0.5
+          v += rand * 0.00016 - 0.000002;
+          vals.push(v);
+        }
+        const hi = Math.max(...vals);
+        const lo = Math.min(...vals);
+        const range = hi - lo || 0.001;
+        const cw = Math.max(5, w / n * 0.65);
+
+        for (let i = 0; i < n; i++) {
+          const o = vals[Math.max(0, i - 1)];
+          const c = vals[i];
+          // deterministic wicks
+          const r1 = Math.sin(i * 34.12) * 1000;
+          const r2 = Math.sin(i * 78.45) * 1000;
+          const hh = Math.max(o, c) + ((r1 - Math.floor(r1)) * 0.00009);
+          const ll = Math.min(o, c) - ((r2 - Math.floor(r2)) * 0.00009);
+
+          const X = i * w / n + w / n * 0.5;
+          const yo = 15 + (hi - o) / range * (h - 35);
+          const yc = 15 + (hi - c) / range * (h - 35);
+          const yh = 15 + (hi - hh) / range * (h - 35);
+          const yl = 15 + (hi - ll) / range * (h - 35);
+
+          ctx.strokeStyle = c >= o ? '#148a58' : '#d33c3c';
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.beginPath();
+          ctx.moveTo(X, yh);
+          ctx.lineTo(X, yl);
+          ctx.stroke();
+          ctx.fillRect(X - cw / 2, Math.min(yo, yc), cw, Math.max(2, Math.abs(yc - yo)));
+        }
+
+        // price labels on the right
+        ctx.fillStyle = '#6d747a';
+        ctx.font = '10px Arial';
+        const decimals = current === 'XAUUSD' ? 2 : (current === 'USDJPY' ? 3 : 5);
+        for (let i = 0; i < 6; i++) {
+          let y = 28 + i * (h - 50) / 5;
+          const val = (hi - (range * i / 5));
+          ctx.fillText(val.toFixed(decimals), w - 60, y);
+        }
+      }
+
+      // ---------- UPDATE QUOTES UI ----------
+      function updateQuotes() {
+        const q = quotes[current];
+        const dec = current === 'XAUUSD' ? 2 : (current === 'USDJPY' ? 3 : 5);
+        document.getElementById('sellq').textContent = q[0].toFixed(dec);
+        document.getElementById('buyq').textContent = q[1].toFixed(dec);
+        document.getElementById('pricebox').textContent = q[0].toFixed(dec);
+        document.getElementById('chartSymbol').textContent = current;
+        document.getElementById('pair').textContent = current;
+        document.getElementById('orderSymbol').textContent = current;
+
+        // spread calculation
+        const spreadVal = current === 'XAUUSD'
+          ? ((q[1] - q[0]) / 0.1).toFixed(1)
+          : (current === 'USDJPY'
+            ? ((q[1] - q[0]) / 0.01).toFixed(1)
+            : ((q[1] - q[0]) / 0.0001).toFixed(1));
+        document.getElementById('spread').textContent = spreadVal;
+      }
+
+      // ---------- SYMBOL SELECTION ----------
+      document.querySelectorAll('.watch-row').forEach(row => {
+        row.addEventListener('click', () => {
+          document.querySelectorAll('.watch-row').forEach(r => r.classList.remove('selected'));
+          row.classList.add('selected');
+          current = row.dataset.symbol;
+          price = quotes[current][0];
+          updateQuotes();
+          drawChart();
+        });
+      });
+
+      // ---------- PERIOD BUTTONS (visual only) ----------
+      document.querySelectorAll('.period').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          // only toggle within the same group (toolbar or chartbar) for simplicity:
+          // we'll just toggle active on all periods, but better to scope per container.
+          const parent = btn.parentElement;
+          parent.querySelectorAll('.period').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+
+      // ---------- ORDER BUTTONS ----------
+      document.getElementById('buy').addEventListener('click', () => {
+        const vol = document.getElementById('volume').value;
+        alert(`LIVE ACCOUNT UI: Buy order ticket submitted for ${vol} lots of ${current}. This prototype is not connected to a broker.`);
+      });
+      document.getElementById('sell').addEventListener('click', () => {
+        const vol = document.getElementById('volume').value;
+        alert(`LIVE ACCOUNT UI: Sell order ticket submitted for ${vol} lots of ${current}. This prototype is not connected to a broker.`);
+      });
+
+      // ---------- DEPOSIT BUTTON ----------
+      document.getElementById('depositBtn').addEventListener('click', function() {
+        const btn = this;
+        btn.textContent = 'Processing…';
+        setTimeout(() => { btn.textContent = 'Deposit'; }, 700);
+      });
+
+      // ---------- CLOSE POSITIONS ----------
+      document.querySelectorAll('.order-close').forEach(btn => {
+        btn.addEventListener('click', function() {
+          this.closest('.tr').remove();
+        });
+      });
+
+      // ---------- AUTO TRADING TOGGLE ----------
+      document.getElementById('auto').addEventListener('click', function() {
+        this.classList.toggle('active');
+      });
+
+      // ---------- INIT ----------
+      window.addEventListener('resize', () => {
+        fitCanvas();
+      });
+
+      // initial draw + update
+      fitCanvas();
+      updateQuotes();
+
+      // slight live tick simulation (without animation on canvas)
+      setInterval(() => {
+        const q = quotes[current];
+        let step;
+        if (current === 'XAUUSD') step = 0.25;
+        else if (current === 'USDJPY') step = 0.006;
+        else step = 0.00002;
+
+        const rand = (Math.random() - 0.48) * step;
+        q[0] += rand;
+        q[1] = q[0] + (current === 'XAUUSD' ? 0.60 : (current === 'USDJPY' ? 0.008 : 0.00004));
+        price = q[0];
+        updateQuotes();
+        // Note: we do NOT redraw the chart to keep it stable, as requested.
+      }, 1200);
+
+      // Ensure canvas redraws after any layout shift
+      window.addEventListener('load', () => {
+        fitCanvas();
+      });
+    })();
+  </script>
+</body>
+</html>
